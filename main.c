@@ -39,17 +39,11 @@ int main(void)
 		
 		if(ppm.ch[0]>0)  	
 		{
-			enabled = (ppm.ch[0]>100) ? 0 : 1;
+			enabled = (ppm.ch[0]>700) ? 0 : 1;
 			ppm.ch[0]=0;
-			PORTD|=(1<<PORTD7);
-			_delay_ms(100);
-			if (enabled)
-			{
-				_delay_ms(100);
-			}
 		}
 		
-		/*if (enabled)
+		if (enabled)
 		{
 			PORTB=(PORTB&0b11000011)|(PIND&(0b00111100));
 			PORTD|=(1<<PORTD7);
@@ -62,12 +56,7 @@ int main(void)
 			PORTB=PORTB|0b00111100;
 			_delay_us(960);
 			PORTB=PORTB&0b11000011;
-		}*/
-		PORTD|=(1<<PORTD7);
-		for (int i=0;i!=ppm.ch[0];i++)
-			_delay_ms(1);
-		PORTD&=~(1<<PORTD7);
-		_delay_ms(200);
+		}
     }
 }
 
