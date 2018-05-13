@@ -3,30 +3,31 @@
 #include <stdint.h>
 #include "pwm.h"
 
-/*      PWM INPUT
+
+/*      PPM INPUT
  *      ---
- *      ICP1    Pin48 on Arduino Mega
+ *      ICP5    Pin48 on Arduino Mega
  */
 void ppm_input_init(void)
 {
-    DDRB &= ( 0 << PINB0 ); // set ICP5 as an input
+    DDRB &= ~( 1 << PORTB0 ); // set ICP5 as an input
 
     TCCR1A = 0x00; // none
-    TCCR1B = ( 1 << ICES5 ) | ( 1 << CS51); // use rising edge as trigger, prescale_clk/8
-    TIMSK = ( 1 << ICIE5 ); // allow input capture interrupts
+    TCCR1B = ( 1 << ICES1 ) | ( 1 << CS11) | ( 1 << CS10); // use rising edge as trigger, prescale_clk/8
+    TIMSK = ( 1 << TICIE1 ); // allow input capture interrupts
 
     // Clear timer 5
-    TCNT5H = 0x00;
-    TCNT5L = 0x00;
+    TCNT1H = 0x00;
+    TCNT1L = 0x00;
 }
 
 // Interrupt service routine for reading PPM values from the radio receiver.
-ISR( TIMER5_CAPT_vect )
+ISR( TIMER1_CAPT_vect )
 {
     // Count duration of the high pulse
     uint16_t high_cnt; 
-    high_cnt = (unsigned int)ICR5L;
-    high_cnt += (unsigned int)ICR5H * 256;
+    high_cnt = (unsigned int)ICR1L;
+    high_cnt += (unsigned int)ICR1H * 256;
 
     /* If the duration is greater than 5000 counts then this is the end of the PPM signal 
      * and the next signal being addressed will be Ch0
@@ -49,8 +50,8 @@ ISR( TIMER5_CAPT_vect )
     }
 
     // Reset counter
-    TCNT5H = 0;
-    TCNT5L = 0;
+    TCNT1H = 0;
+    TCNT1L = 0;
 
-    TIFR5 = ( 1 << ICF5 ); // clear input capture flag
+    TIFR = ( 1 << ICF1 ); // clear input capture flag
 }
