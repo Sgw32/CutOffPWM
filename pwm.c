@@ -34,19 +34,13 @@ ISR( TIMER1_CAPT_vect )
      */
     if ( high_cnt < 5000 )
     {
-        // Added for security of the array
-        if ( ch_index > 5 )
-        {
-            ch_index = 5;
-        }
+        ppm.ch[0] = high_cnt; // Write channel value to array
 
-        ppm.ch[ch_index] = high_cnt; // Write channel value to array
-
-        ch_index++; // increment channel index
+       // ch_index++; // increment channel index
     }
     else
     {
-        ch_index = 0; // reset channel index
+        //ch_index = 0; // reset channel index
     }
 
     // Reset counter
