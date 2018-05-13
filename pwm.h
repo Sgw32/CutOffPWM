@@ -10,7 +10,7 @@ struct orangeRX_ppm {
 };
 volatile unsigned char ch_index;
 struct orangeRX_ppm ppm;
-
+volatile uint8_t rising;
 /* Functions */
 void ppm_input_init(void); // Initialise the PPM Input to CTC mode
 ISR( TIMER1_CAPT_vect ); // Use ISR to handle CTC interrupt and decode PPM
