@@ -36,7 +36,7 @@ int main(void)
 	enabled=1;
 	ppm_input_init();
 	ppm.ch[0]=0;
-	relay_cnt=3686400;
+	relay_cnt=100000;
 	sei();
 	
     while (1) 
@@ -48,7 +48,7 @@ int main(void)
 			ppm.ch[0]=0;
 		}
 		
-		if (relay_cnt==1000) 
+		if (relay_cnt==100000) 
 		{
 			//После выключения реле передаём данные с порта.
 			PORTB=(PORTB&0b11000011)|(PIND&(0b00111100));
