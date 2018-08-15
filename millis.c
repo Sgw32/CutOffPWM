@@ -1,3 +1,4 @@
+
 /*
  * Project: Lightweight millisecond tracking library
  * Author: Zak Kemble, contact@zakkemble.co.uk
@@ -129,11 +130,8 @@ void millis_init()
 {
 	// Timer settings
 	TIMSK |= (1 << TOIE0);
-	sei();
-	//enable interrupts
 	TCCR0 |= (1 << CS01) | (1 << CS00);
-	
-	//REG_OCR = ((F_CPU / PRESCALER) / 1000);
+	sei();
 }
 
 // Get current milliseconds
