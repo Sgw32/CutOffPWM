@@ -131,7 +131,7 @@ void millis_init()
 	// Timer settings
 	TIMSK |= (1 << TOIE0);
 	TCCR0 |= (1 << CS01) | (1 << CS00);
-	sei();
+	//sei();
 }
 
 // Get current milliseconds

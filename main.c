@@ -14,28 +14,61 @@
 #define PWM_PER_TICK (PWM_MAX - PWM_MIN) / PWM_DELAY
 
 volatile uint8_t rc_desired = 1;
+volatile uint8_t pwm_limit = PWM_MAX;
 
+void process()
+{
+	static uint8_t desired = 1;
+	static millis_t relay_done = 0;
+	static millis_t pwm_done = 0;
+	
+	static millis_t now = 0;
+	
+	//millis_t now = millis();
+	
+	if (rc_desired != desired) {
+		desired = rc_desired;
+		if (desired)
+			relay_done = now + RELAY_DELAY;
+		else
+			pwm_done = now + PWM_DELAY;
+	}
+	
+	if (desired) { //при старте эта ветка
+		PORTD &= ~(1 << PORTD7); // turn off relay immediately
+		if (now < relay_done)
+			pwm_limit = 0;
+		else if (now > relay_done + PWM_DELAY)
+			pwm_limit = PWM_MAX;
+		else
+			pwm_limit = PWM_MIN + (now - relay_done) * PWM_PER_TICK;
+	}
+	else {
+		pwm_limit = (now < pwm_done) ? ((pwm_done - now) * PWM_PER_TICK + PWM_MIN) : 0;
+		if (now > pwm_done + INTER_DELAY)
+			PORTD |= 1 << PORTD7;
+	}
+	
+	if (desired)
+		PORTC|=(1<<PORTC1);
+	else
+		PORTC&=~(1<<PORTC1);
+	
+	now += 2; // ~800hz, millis() approximation
+}
+
+uint16_t ppm_d = 1000;
 const int timer2_prescaler = (1 << CS22) | (1 << CS21) | (1 << CS20);
- 
-inline void timer2_start()
-{
-	TCCR2 = timer2_prescaler;
-}
-
-inline void timer2_stop()
-{
-	TCCR2 = 0;
-}
 
 ISR (TIMER2_COMP_vect)
 {
-	timer2_stop();
-	//PORTC = PORTC ^ 2;	
+	TCCR2 = 0;
+	process();
 }
 
 void timer2_init()
 {
-	OCR2 = 0x7F;
+	OCR2 = PWM_MAX; // 0x7F
 	TIMSK |= (1 << OCIE2);
 	TCNT2 = 0xFF;
 }
@@ -43,8 +76,8 @@ void timer2_init()
 ISR (INT0_vect)
 {
 	TCNT2 = 0;
-	timer2_start();
-	PORTC = PORTC ^ 1;
+	TCCR2 = timer2_prescaler;
+	//	PORTC = PORTC ^ 1;
 }
 
 void inputinterrupt_init()
@@ -68,6 +101,7 @@ void ppm_input_init(void)
 }
 
 // Interrupt service routine for reading PPM values from the radio receiver.
+//50-400 Hz
 ISR( TIMER1_CAPT_vect )
 {
 	static uint16_t tStart;
@@ -80,71 +114,42 @@ ISR( TIMER1_CAPT_vect )
 	else { // falling
 		TCCR1B |= (1 << ICES1);
 		uint16_t ppm = (t - tStart) / 2;
-		if (ppm >= 1000 && ppm <= 2000)
-			rc_desired = ppm > 1500 ? 0 : 1;
+		if (ppm >= 1000 && ppm <= 2000) {
+			//ppm_d = (7 * ppm_d + ppm) / 8;
+			rc_desired = ppm/*_d*/ > 1500 ? 0 : 1;
+		}
 	}
 }
 
 int main(void)
 {
-    PORTD = 0x00;
-    DDRD = 0b11000011; //0b11000011, some input(PWM)
+	PORTD = 0x00;
+	DDRD = 0b11000011; //0b11000011, some input(PWM)
 	
 	PORTB = 0x00;
 	DDRB = 0b11111110; //All output,expect last one
 
 	PORTC = 0x00;
 	DDRC = 0b11111111; //All output
+	
+	/*cli();
+	while (1) {
+	PORTB=(PORTB&0b11000011)|(PIND&(0b00111100)); //После выключения реле передаём данные с порта.
+	}*/
 
-	millis_init();	
+	//millis_init();
 	ppm_input_init();
 	timer2_init();
 	inputinterrupt_init();
-
-	int pwm_limit = 0;
 	
-	millis_t relay_done = 0, pwm_done = 0;
-	uint8_t desired = rc_desired;
+	sei();
 	
-	sei();	
-	
-    while (1) 
-    {
-		millis_t now = millis();
-		
-		if (rc_desired != desired) {
-			desired = rc_desired;
-			if (desired)
-				relay_done = now + RELAY_DELAY;
-			else
-				pwm_done = now + PWM_DELAY;
-		}
-		
-			
-		if (desired) { //при старте эта ветка
-			PORTD&=~(1<<PORTD7); // turn off relay immediately
-			if (now < relay_done)
-				pwm_limit = 0;
-			else if (now > relay_done + PWM_DELAY)
-				pwm_limit = PWM_MAX;
-			else
-				pwm_limit = PWM_MIN + (now - relay_done) * PWM_PER_TICK;
-		}
-		else {
-			pwm_limit = (now < pwm_done) ? ((pwm_done - now) * PWM_PER_TICK + PWM_MIN) : 0;
-			if (now > pwm_done + INTER_DELAY)
-				PORTD|=(1<<PORTD7);
-		}
-		
+	while (1)
+	{					
 		if (TCNT2 < pwm_limit)
-			PORTB=(PORTB&0b11000011)|(PIND&(0b00111100)); //После выключения реле передаём данные с порта.			
+			PORTB=(PORTB&0b11000011)|(PIND&(0b00111100)); //После выключения реле передаём данные с порта.
 		else
-			PORTB&=0b11000011;
-		
-		if (desired)
-			PORTC|=(1<<PORTC1);
-		else
-			PORTC&=~(1<<PORTC1);
-    }
+			PORTB&=0b11000011;		
+	}
 }
 
