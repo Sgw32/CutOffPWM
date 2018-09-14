@@ -50,11 +50,11 @@ void process()
 	}
 	
 	if (desired)
-		PORTC|=(1<<PORTC1);
+		PORTC |= (1 << PORTC1);
 	else
-		PORTC&=~(1<<PORTC1);
+		PORTC &= ~(1 << PORTC1);
 	
-	now += 2; // ~800hz, millis() approximation
+	now += 3; // ~1200hz, millis() approximation
 }
 
 uint16_t ppm_d = 1000;
@@ -82,7 +82,7 @@ ISR (INT0_vect)
 
 void inputinterrupt_init()
 {
-	MCUCR |= (1 << ISC01) | (1 << ISC00);    // INT0 on rising edge
+	MCUCR |= (1 << ISC01);    // INT0 on falling edge
 	GICR |= (1 << INT0);      // Turns on INT0
 }
 
@@ -134,7 +134,7 @@ int main(void)
 	
 	/*cli();
 	while (1) {
-	PORTB=(PORTB&0b11000011)|(PIND&(0b00111100)); //После выключения реле передаём данные с порта.
+			PORTB = (PORTB & 0b11000011) | ((~PIND) & 0b00111100); //После выключения реле передаём данные с порта.
 	}*/
 
 	//millis_init();
@@ -144,12 +144,14 @@ int main(void)
 	
 	sei();
 	
-	while (1)
-	{					
-		if (TCNT2 < pwm_limit)
-			PORTB=(PORTB&0b11000011)|(PIND&(0b00111100)); //После выключения реле передаём данные с порта.
-		else
-			PORTB&=0b11000011;		
+	while (1) {
+		if (TCNT2 < pwm_limit) {
+			PORTB = (PORTB & 0b11000011) | ((~PIND) & 0b00111100); //После выключения реле передаём данные с порта.
+			PORTC |= (1 << PORTC2);
+		}
+		else {
+			PORTB &= 0b11000011;
+			PORTC &= ~(1 << PORTC2);
+		}
 	}
 }
-
