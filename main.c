@@ -8,7 +8,7 @@
 
 #define RELAY_DELAY 100 // millis - задержка размыкания реле
 #define PWM_DELAY 2048 // millis - задержка до замыкания реле
-#define INTER_DELAY 3000
+#define INTER_DELAY 1500
 #define PWM_MIN 16
 #define PWM_MAX 32 // ticks of TIMER2
 #define PWM_PER_TICK (PWM_MAX - PWM_MIN) / PWM_DELAY
@@ -114,9 +114,9 @@ ISR( TIMER1_CAPT_vect )
 	else { // falling
 		TCCR1B |= (1 << ICES1);
 		uint16_t ppm = (t - tStart) / 2;
-		if (ppm >= 1000 && ppm <= 2000) {
-			//ppm_d = (7 * ppm_d + ppm) / 8;
-			rc_desired = ppm/*_d*/ > 1500 ? 0 : 1;
+		if (ppm >= 800 && ppm <= 2200) {
+			ppm_d = (7 * ppm_d + ppm) / 8;
+			rc_desired = ppm_d > 1500 ? 0 : 1;
 		}
 	}
 }
@@ -132,12 +132,6 @@ int main(void)
 	PORTC = 0x00;
 	DDRC = 0b11111111; //All output
 	
-	/*cli();
-	while (1) {
-			PORTB = (PORTB & 0b11000011) | ((~PIND) & 0b00111100); //После выключения реле передаём данные с порта.
-	}*/
-
-	//millis_init();
 	ppm_input_init();
 	timer2_init();
 	inputinterrupt_init();
